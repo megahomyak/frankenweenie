@@ -38,7 +38,7 @@ impl<'a, H: FnMut(frankenstein::Update)> Listener<'a, H> {
                 .max()
                 .map(|max_update_id| (max_update_id + 1).into())
             {
-                self.params.offset = new_offset;
+                self.params.offset = Some(new_offset);
             }
 
             for update in updates.result {
