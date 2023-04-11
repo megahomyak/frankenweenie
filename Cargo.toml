@@ -1,0 +1,11 @@
+[package]
+name = "frankenweenie"
+version = "0.1.0"
+edition = "2021"
+description = "A convenience crate for \"frankenstein\" crate"
+license = "MIT"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+frankenstein = { version = "0.24.1", features = ["async-http-client"] }
