@@ -9,3 +9,4 @@ license = "MIT"
 
 [dependencies]
 frankenstein = { version = "0.24.1", features = ["async-http-client"] }
+thiserror = "1.0.40"

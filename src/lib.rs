@@ -1,39 +1,39 @@
 use frankenstein::{AsyncTelegramApi, GetUpdatesParams};
+use thiserror::Error;
 
-pub struct Listener {
-    offset: Option<i64>,
+#[derive(Clone, Debug)]
+pub struct Listener<'a, H: FnMut(frankenstein::Update)> {
+    params: GetUpdatesParams,
+    client: &'a frankenstein::AsyncApi,
+    handler: H,
 }
 
+#[derive(Debug, Error)]
 pub enum Error {
-    UpdatesGettingError { source: frankenstein::Error },
+    #[error("an error occured while getting updates: {source}")]
+    UpdatesGettingError {
+        source: frankenstein::Error,
+    },
 }
 
-impl Listener {
-    pub fn new() -> Self {
-        Self { offset: None }
+impl<'a, H: FnMut(frankenstein::Update)> Listener<'a, H> {
+    pub fn new(params: GetUpdatesParams, client: &'a frankenstein::AsyncApi, handler: H) -> Self {
+        Self {
+            params,
+            client,
+            handler,
+        }
     }
 
-    pub fn new_with_offset(offset: Option<i64>) -> Self {
-        Self { offset }
-    }
-
-    pub async fn listen<H: FnMut(frankenstein::Update)>(
-        client: &frankenstein::AsyncApi,
-        params: &GetUpdatesParams,
-        mut handler: H,
-    ) -> Result<(), Error> {
-        let mut offset = None;
-
+    pub async fn listen(&mut self) -> Result<(), Error> {
         loop {
-            let updates = client
-                .get_updates(&GetUpdatesParams {
-                    offset,
-                    ..params.clone()
-                })
+            let updates = self
+                .client
+                .get_updates(&self.params)
                 .await
                 .map_err(|source| Error::UpdatesGettingError { source })?;
 
-            offset = updates
+            self.params.offset = updates
                 .result
                 .iter()
                 .map(|update| update.update_id)
@@ -41,12 +41,12 @@ impl Listener {
                 .map(|max_update_id| (max_update_id + 1).into());
 
             for update in updates.result {
-                handler(update);
+                (self.handler)(update);
             }
         }
     }
 
-    pub fn offset(&self) -> Option<i64> {
-        self.offset
+    pub fn params(&self) -> &GetUpdatesParams {
+        &self.params
     }
 }
