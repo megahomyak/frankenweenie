@@ -11,9 +11,7 @@ pub struct Listener<'a, H: FnMut(frankenstein::Update)> {
 #[derive(Debug, Error)]
 pub enum Error {
     #[error("an error occured while getting updates: {source}")]
-    UpdatesGettingError {
-        source: frankenstein::Error,
-    },
+    UpdatesGettingError { source: frankenstein::Error },
 }
 
 impl<'a, H: FnMut(frankenstein::Update)> Listener<'a, H> {
@@ -33,12 +31,15 @@ impl<'a, H: FnMut(frankenstein::Update)> Listener<'a, H> {
                 .await
                 .map_err(|source| Error::UpdatesGettingError { source })?;
 
-            self.params.offset = updates
+            if let Some(new_offset) = updates
                 .result
                 .iter()
                 .map(|update| update.update_id)
                 .max()
-                .map(|max_update_id| (max_update_id + 1).into());
+                .map(|max_update_id| (max_update_id + 1).into())
+            {
+                self.params.offset = new_offset;
+            }
 
             for update in updates.result {
                 (self.handler)(update);
